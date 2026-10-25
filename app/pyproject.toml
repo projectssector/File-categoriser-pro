@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "file-categorizer"
 version = "1.0.0"
 description = "Local-first self-learning file categorizer for images and videos"
-readme = "README.md"
+readme = { text = "Local-first self-learning file categorizer for images and videos.", content-type = "text/plain" }
 requires-python = ">=3.10"
 license = { text = "MIT" }
 

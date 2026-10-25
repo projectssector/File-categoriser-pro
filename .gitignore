@@ -14,7 +14,7 @@ output/
 inbox/
 NSFW/
 ambiguous/
-config/config.yaml
+app/config/config.yaml
 .env
 .env.*
 !.env.example

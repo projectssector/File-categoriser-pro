@@ -7,6 +7,10 @@ It learns from your corrections, so it gets better the more you use it.
 
 No Python installation is needed for the Windows app.
 
+The source code, documentation and build files live in the [`app/`](app)
+folder. This README, the install guide and the how-it-works guide stay at the
+repository root.
+
 ## Download and install
 
 1. Open the [latest release](../../releases/latest).
@@ -103,9 +107,11 @@ still fails, run from source (below) to see the error output.
 
 ## Run from source
 
-For development or if you prefer Python:
+For development or if you prefer Python. Run these commands from the `app`
+folder:
 
 ```powershell
+cd app
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install --upgrade pip
@@ -123,39 +129,42 @@ python -m file_categorizer scan .\inbox
 python -m file_categorizer export
 ```
 
-See [docs/SETUP.md](docs/SETUP.md) for details.
+See [app/docs/SETUP.md](app/docs/SETUP.md) for details.
 
 ## Build the Windows installer
 
 The installer is built with PyInstaller and Inno Setup 6. See
-[docs/BUILD.md](docs/BUILD.md).
+[app/docs/BUILD.md](app/docs/BUILD.md). Run these commands from the `app`
+folder:
 
 ```powershell
+cd app
 pip install -r requirements-dev.txt
 python -m PyInstaller FileCategorizer.spec --noconfirm --clean
 & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" FileCategorizer.iss
 ```
 
-The result is `dist\FileCategorizer-Setup-1.0.0.exe`.
+The result is `app\dist\FileCategorizer-Setup-1.0.0.exe`.
 
 ## How it works
 
 See [HOW_IT_WORKS.txt](HOW_IT_WORKS.txt) and
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+[app/docs/ARCHITECTURE.md](app/docs/ARCHITECTURE.md).
 
 ## Documentation
 
 - [Install guide](INSTALL.txt)
-- [Run from source](docs/SETUP.md)
-- [Build the installer](docs/BUILD.md)
-- [Configuration reference](docs/CONFIG.md)
-- [Architecture](docs/ARCHITECTURE.md)
+- [How it works](HOW_IT_WORKS.txt)
+- [Run from source](app/docs/SETUP.md)
+- [Build the installer](app/docs/BUILD.md)
+- [Configuration reference](app/docs/CONFIG.md)
+- [Architecture](app/docs/ARCHITECTURE.md)
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [app/LICENSE](app/LICENSE).
 
 ## Security
 
 Never commit your `.env`, `data/settings.json` or any API key. See
-[SECURITY.md](SECURITY.md).
+[app/SECURITY.md](app/SECURITY.md).

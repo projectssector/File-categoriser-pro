@@ -1,5 +1,7 @@
 # Build the Windows app and installer
 
+Run all commands in this guide from the `app` folder (`cd app`).
+
 The release build has two steps:
 
 1. **PyInstaller** turns the Python app into the folder `dist\FileCategorizer\`.
@@ -87,8 +89,8 @@ Update all of these before a new release:
 - `FileCategorizer.iss` -> `MyAppVersion`
 - `pyproject.toml` -> `version`
 - `src\file_categorizer\__init__.py` -> `__version__`
-- `version_info.txt` -> `filevers` / `prodvers` / strings
-- `README.md` and `INSTALL.txt` download filenames
+- `..\version_info.txt` -> `filevers` / `prodvers` / strings
+- `..\README.md` and `..\INSTALL.txt` download filenames
 - `RELEASE_NOTES.md` and `AUTHENTIC_CODE.txt`
 
 ## Notes

@@ -3,6 +3,8 @@
 Most Windows users should install the release instead. Use this guide for
 development or debugging.
 
+Run all commands in this guide from the `app` folder (`cd app`).
+
 ## Prerequisites
 
 - Python 3.10 or newer (3.12 recommended)

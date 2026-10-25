@@ -1,5 +1,7 @@
 # Configuration reference
 
+Paths in this guide are relative to the `app` folder.
+
 The template is `config/config.example.yaml`. The installed app copies it to
 `%USERPROFILE%\FileCategorizer\config\config.yaml` on first launch.
 
