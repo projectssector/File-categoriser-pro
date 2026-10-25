@@ -59,7 +59,7 @@ Open PowerShell in the download folder and run:
 
   Get-FileHash .\FileCategorizer-Setup-1.0.0.exe -Algorithm SHA256
 
-Compare the result with SHA256SUMS.txt from the release page.
+Compare the result with AUTHENTIC_CODE.txt from the release page.
 
 TROUBLESHOOTING
 ---------------

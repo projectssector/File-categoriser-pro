@@ -1,0 +1,28 @@
+FILE CATEGORIZER 1.0.0 - AUTHENTIC CODE
+=======================================
+
+This file holds the SHA-256 fingerprint ("authentic code") of the Windows
+installer. Comparing your download against this value proves the file is
+authentic and has not been corrupted or modified.
+
+Installer:
+  FileCategorizer-Setup-1.0.0.exe
+
+SHA-256:
+  3F025AA1FDBF59D675168CB4F30A72943D0383EF39588A01F86F73995F1E4723
+
+HOW TO CHECK ON WINDOWS
+-----------------------
+Open PowerShell in the folder containing the installer and run:
+
+  Get-FileHash .\FileCategorizer-Setup-1.0.0.exe -Algorithm SHA256
+
+The output must match the SHA-256 value above (letter case does not matter).
+If it differs, the file was modified or damaged: do not run it, and download
+the installer again from the official release page:
+
+  https://github.com/projectssector/File-categoriser-pro/releases/tag/v1.0.0
+
+STANDARD CHECKSUM LINE (FOR AUTOMATED TOOLS)
+--------------------------------------------
+3F025AA1FDBF59D675168CB4F30A72943D0383EF39588A01F86F73995F1E4723  release/FileCategorizer-Setup-1.0.0.exe

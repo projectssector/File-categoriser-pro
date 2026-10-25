@@ -38,7 +38,7 @@ First public Windows release.
 
 ## Verify the download
 
-See `SHA256SUMS.txt` in the repository, or run:
+See `AUTHENTIC_CODE.txt` in the repository, or run:
 
 ```powershell
 Get-FileHash .\FileCategorizer-Setup-1.0.0.exe -Algorithm SHA256

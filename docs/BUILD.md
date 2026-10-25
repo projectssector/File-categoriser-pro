@@ -89,7 +89,7 @@ Update all of these before a new release:
 - `src\file_categorizer\__init__.py` -> `__version__`
 - `version_info.txt` -> `filevers` / `prodvers` / strings
 - `README.md` and `INSTALL.txt` download filenames
-- `RELEASE_NOTES.md` and `SHA256SUMS.txt`
+- `RELEASE_NOTES.md` and `AUTHENTIC_CODE.txt`
 
 ## Notes
 
