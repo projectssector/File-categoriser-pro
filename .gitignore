@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# App runtime data (never commit personal files)
+data/
+output/
+inbox/
+NSFW/
+ambiguous/
+config/config.yaml
+.env
+.env.*
+!.env.example
+
+# Build output
+build/
+dist/
+
+# Release binaries: upload these to GitHub Releases, not to the repo
+release/*.exe
+release/*.zip
+
+# OS and editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.vs/
+.vscode/
+.idea/

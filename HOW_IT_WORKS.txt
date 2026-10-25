@@ -1,0 +1,109 @@
+HOW IT WORKS - File Categorizer
+================================
+
+1. FILE INPUT
+- Add files/folders via GUI drag-drop or CLI
+- Supports images (jpg, png, webp, bmp, gif) and videos (mp4, mov, avi, mkv, webm)
+- Files are placed in a queue for processing
+
+2. NSFW CHECK
+- First pass checks for NSFW content using CLIP-based NSFW classifier
+- Explicit files are STILL classified (e.g. anime / photo / your own
+  categories) and filed under NSFW/<category>/ so nothing is ever skipped
+- Set models.nsfw.classify: false for the old flat NSFW behaviour, or
+  models.nsfw.subfolder: false to classify without the per-category folder
+- Threshold adjustable in config.yaml
+
+3. CLASSIFICATION PIPELINE
+- CLIP prefilter: Fast local classification against your category list
+- Owner bias: Folder-based hints boost/block certain categories
+- Gemini fallback: If CLIP confidence is below threshold, uses Gemini API
+  to make a smarter guess with visual analysis
+- Cache: Results cached by file hash for instant re-classification
+- Corrections: Past manual corrections override future guesses
+
+4. LEARNING FROM CORRECTIONS
+- When you correct a classification in Review panel, it's saved to database
+- Future files with same hash remember the correction
+- New categories you create are remembered across sessions
+- Categories persist in data/categories.json and sync with config
+
+5. OUTPUT
+- Files moved to output/<category>/<filename> (unless dry-run)
+- Reports generated with classification results, confidence, model used
+- Review panel lets you verify and correct results
+
+6. METADATA EXTRACTION (new)
+- After a file is classified, the metadata layer wraps the same run:
+  load image -> dedupe check -> OCR (Tesseract, optional) -> VLM
+  extraction (Gemini, optional) -> parse entities -> enrichment -> store.
+- Every extracted field carries value + source (image/caption/comment/
+  ocr/search/manual/learned) + confidence + evidence.
+- Comment sections are a first-class source: screenshots usually show an
+  open comment area, so the VLM is told to read it and record the visible
+  text in a dedicated comment_text field. Fields found in comments are
+  tagged source=comment with a high/medium/low correlation, and comment_text
+  gets its own column in the Master (and Unknown_Review) sheet.
+- OCR and VLM are optional: without Tesseract or a Gemini key the run
+  still works, fields are simply fewer. Nothing ever crashes on a missing
+  optional dependency.
+- SQLite (data/cache.db, meta_* tables) is the source of truth.
+
+7. ENTITY ENRICHMENT (new)
+- Parsed entities can be looked up automatically and cached:
+  OpenGraph/<title> for URLs, YouTube oEmbed, AniList (anime), TMDB
+  (movies/TV, needs TMDB_API_KEY). Toggle in config.yaml under enrichment.
+
+8. DEDUPE (new)
+- Exact hash and perceptual hash (imagehash) are checked BEFORE writing.
+- An exact duplicate skips OCR/extraction (saves cost) and only refreshes
+  the file row. A perceptual duplicate is kept but flagged for review.
+- "Already recorded" files only gain fields they do not have yet.
+
+9. SPREADSHEET EXPORT (new)
+- The workbook is an EXPORT ONLY report built from SQLite; it is never read
+  back. Default path: output/metadata.xlsx.
+- Sheets: Master + one per category (Anime, Movies_TV, YouTube, Websites,
+  Social_Accounts, Songs, ...).
+- CLI:  python -m file_categorizer export [--workbook PATH]
+- GUI: the "Spreadsheet" tab (path, auto-export toggle, Export Now, preview).
+
+10. REVIEW PANEL FEATURES
+- Click image preview to enlarge for better viewing
+- 'What is it actually?' dropdown to pick correct category
+- 'Suggest New Category' - auto-generates name from filename
+- 'Add New Category' - quickly add new category from review screen
+- Navigate between results with Previous/Next
+- Save Correction & Learn applies fix and moves file if not dry-run
+- Metadata Review & Teach: an EDITABLE table of extracted fields with
+  source/confidence/evidence, plus Run search, Approve & save, Open URL,
+  Export this row, Mark recorded. Edited values are remembered as
+  field-level corrections AND generalised to every entity they belong to,
+  so a fix on one file teaches future files with the same channel/anime/URL.
+- Teaching notes box: type what to look for on each image you confirm
+  ("naruto fan art, @artist_handle, comment says ep 12"). It is saved per
+  image, written to the workbook Notes column, and its keywords are learned
+  as category hints for similar images. Saved by "Save notes",
+  "Approve & save" or "Save Correction & Learn".
+- Explicit (NSFW) files are also shown here so they can be reviewed, taught
+  and exported like every other image. They show their content category plus
+  an "(explicit/NSFW)" marker, and are stored with subcategory NSFW.
+
+11. FIELD-LEVEL LEARNING (new)
+- A field you fix is re-applied automatically to future files that share
+  the same hash OR the same entity (source "learned"). The Review panel now
+  writes BOTH, so corrections generalise by entity, not just by file.
+- Correcting a category also remembers each entity -> category in the
+  patterns table; a strong memory is offered as a suggestion and flags the
+  file for review (the file is already moved, so it is never force-moved).
+- Teaching notes also teach: their keywords are stored as entity keyword
+  -> category hints, so words you use to describe an image steer future
+  matches for the same words.
+
+KEY CONCEPTS
+------------
+- Confidence threshold: Controls when to fall back to Gemini (default 0.75)
+- Dry run: Test without moving files (metadata is still stored for review)
+- Self-learning: Every correction improves future accuracy
+- Local-first: CLIP runs locally; only Gemini needs API key
+- Source of truth: SQLite (data/cache.db); Excel is export-only

@@ -1,0 +1,81 @@
+FILE CATEGORIZER 1.0.0 - WINDOWS INSTALLATION
+=============================================
+
+WHAT YOU NEED
+-------------
+- Windows 10 or Windows 11 (64-bit)
+- About 2-3 GB of free disk space (app, temporary files and AI models)
+- Internet connection for the first launch (it downloads the AI models)
+- No Python installation
+- No administrator rights
+
+INSTALL
+-------
+1. Download: FileCategorizer-Setup-1.0.0.exe
+2. Double-click the file.
+3. If Windows SmartScreen appears, click "More info" and then "Run anyway".
+   (The installer is not code-signed yet.)
+4. Follow the wizard. The app installs for your user account only.
+5. Start "File Categorizer" from the Start Menu.
+
+FIRST LAUNCH
+------------
+- The first launch downloads the local AI models (about 700 MB total).
+  Keep the internet connection on and wait a few minutes.
+- The very first start can also be slower while Windows scans the new files.
+- Later launches are faster because the models are cached; expect roughly
+  10-20 seconds on a typical PC.
+- A Gemini API key is optional. Add it in Settings only if you want the
+  online AI fallback for difficult files.
+
+OPTIONAL: TEXT FROM SCREENSHOTS (OCR)
+-------------------------------------
+Install Tesseract for Windows from:
+  https://github.com/UB-Mannheim/tesseract/wiki
+The app finds it automatically. Without Tesseract, OCR is skipped and all
+other features still work.
+
+WHERE THINGS ARE SAVED
+----------------------
+Program files:
+  %LOCALAPPDATA%\Programs\FileCategorizer
+
+Your settings, config, database and logs:
+  %USERPROFILE%\FileCategorizer
+
+Downloaded AI models:
+  %USERPROFILE%\.cache
+
+UNINSTALL
+---------
+Windows Settings > Apps > Installed apps > File Categorizer > Uninstall.
+
+To remove all personal data as well, delete this folder after uninstalling:
+  %USERPROFILE%\FileCategorizer
+
+VERIFY THE DOWNLOAD (OPTIONAL)
+------------------------------
+Open PowerShell in the download folder and run:
+
+  Get-FileHash .\FileCategorizer-Setup-1.0.0.exe -Algorithm SHA256
+
+Compare the result with SHA256SUMS.txt from the release page.
+
+TROUBLESHOOTING
+---------------
+- SmartScreen warning: More info > Run anyway.
+- Slow first start: Windows is scanning the new files and the app is
+  downloading the models. Later starts are faster.
+- Model download blocked: check firewall, proxy or antivirus.
+- Antivirus quarantines the app: the unsigned build can trigger a false
+  positive. Add an exclusion for the install folder, or build from source.
+- App will not start: uninstall, delete %USERPROFILE%\FileCategorizer,
+  then install again.
+- OCR missing: install Tesseract and restart the app.
+
+SUPPORT
+-------
+Open an issue on the GitHub repository and include:
+- Windows version
+- What you clicked before the problem
+- The contents of %USERPROFILE%\FileCategorizer\data\logs (if present)

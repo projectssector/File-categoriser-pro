@@ -1,0 +1,109 @@
+paths:
+  inbox:     "./inbox"
+  output:    "./output"
+  nsfw:      "./NSFW"
+  ambiguous: "./ambiguous"
+  database:  "./data/cache.db"
+  logs:      "./data/logs"
+
+categories:
+  anime:
+    scan_for:
+      - "distinct linework and cel-shading"
+      - "stylized or exaggerated eyes"
+      - "flat color regions"
+  photo:
+    scan_for:
+      - "natural lighting gradients"
+      - "realistic depth of field"
+  screenshot:
+    scan_for:
+      - "UI chrome, taskbars, window borders"
+      - "rendered text and cursor"
+  document:
+    scan_for:
+      - "large blocks of text"
+      - "white background, high contrast"
+
+models:
+  prefilter:
+    type: clip
+    model: ViT-B-32
+    pretrained: laion2b_s34b_b79k
+    confidence_threshold: 0.75
+  deep:
+    type: gemini
+    # Preferred Gemini model. The app auto-detects a usable model for your key,
+    # so a retired name here (e.g. gemini-1.5-flash) will not break a run.
+    model: gemini-2.5-flash
+    trigger: when_prefilter_below_threshold
+  nsfw:
+    type: clip_nsfw
+    threshold: 0.85
+    action: move_to_folder
+    target: NSFW
+    classify: true          # also content-classify explicit files (recommended)
+    subfolder: true         # file them under NSFW/<category>/ so they stay sorted
+
+owner_hints:
+  default:
+    boost: {}
+    block: []
+  # example:
+  # "alice":
+  #   boost: { anime: 1.3, gaming: 1.2 }
+  #   block: [nsfw]
+
+feedback:
+  confidence_threshold: 0.75
+  learn_patterns: true
+  max_review_batch: 50
+
+video:
+  frame_positions: [0.1, 0.5, 0.9]
+  output_format: composite   # or "gif"
+  max_duration_sec: 120
+
+# -----------------------------------------------------------------------------
+# METADATA + SPREADSHEET LAYER (added; existing keys above are unchanged)
+# -----------------------------------------------------------------------------
+metadata:
+  enabled: true            # master switch for the metadata layer
+
+ocr:
+  enabled: true
+  backend: tesseract       # "tesseract" | "paddle"
+  lang: eng
+
+extraction:
+  backend: gemini          # "gemini" | "none"
+  # Preferred model; auto-falls-back to another available model if retired.
+  model: gemini-2.5-flash
+  temperature: 0.2
+  max_output_tokens: 1024
+
+dedupe:
+  exact: true
+  perceptual: true
+  phash_threshold: 6       # Hamming distance; lower = stricter
+
+enrichment:
+  youtube: true            # YouTube oEmbed (no key needed)
+  tmdb: true               # needs TMDB_API_KEY env var, else skipped
+  anilist: true            # AniList GraphQL (no key needed)
+  opengraph: true          # og:title/description from web pages
+  account_search: false    # off by default; can cost API budget
+
+spreadsheet:
+  workbook_path: output/metadata.xlsx
+  auto_export: false       # if true, re-export after each processed file
+  export_after_index: true  # export after batch indexing/scan
+  sheets:
+    - Master
+    - Anime
+    - Movies_TV
+    - YouTube
+    - Social_Accounts
+    - Websites
+    - Songs
+    - Unknown_Review
