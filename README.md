@@ -150,7 +150,6 @@ See [HOW_IT_WORKS.txt](HOW_IT_WORKS.txt) and
 - [Build the installer](docs/BUILD.md)
 - [Configuration reference](docs/CONFIG.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [Publish on GitHub](UPLOAD_TO_GITHUB.md)
 
 ## License
 
