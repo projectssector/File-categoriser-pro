@@ -83,63 +83,33 @@ def _print_result(result: dict, dry_run: bool) -> None:
         console.print(f"    [dim]{f.get('field_name')}:[/dim] {value} [dim][{src}][/dim]")
 
 
-@app.command()
-def scan(
-    path: Path = typer.Argument(..., help="File or folder to scan"),
-    recursive: bool = typer.Option(False, "--recursive", "-r"),
-    dry_run: bool = typer.Option(False, "--dry-run"),
-    review: bool = typer.Option(False, "--review"),
-    no_metadata: bool = typer.Option(False, "--no-metadata", help="Skip OCR/VLM extraction"),
-    config_path: str = CONFIG_OPT,
-):
-    """Index files automatically (extracts metadata, EXIF, and duplicates)."""
+def _run_index(
+    path: Path,
+    recursive: bool,
+    dry_run: bool,
+    review: bool,
+    no_metadata: bool,
+    config_path: str,
+) -> None:
+    """Shared implementation for the ``scan`` and ``index`` commands."""
+    if not path.exists():
+        console.print(f"[red]Path not found:[/red] {path}")
+        raise typer.Exit(code=1)
 
-
-@app.command()
-def index(
-    path: Path = typer.Argument(..., help="File or folder to index"),
-    recursive: bool = typer.Option(False, "--recursive", "-r"),
-    dry_run: bool = typer.Option(False, "--dry-run"),
-    no_metadata: bool = typer.Option(False, "--no-metadata", help="Skip OCR/VLM extraction"),
-    config_path: str = CONFIG_OPT,
-):
-    """Index files automatically (Lap-style)."""
     cfg = load_config(config_path)
     setup_logging(cfg.paths.get("logs", "data/logs"))
     db = Database(cfg.paths.get("database", "data/cache.db"))
     pipeline = _build_pipeline(cfg, db, no_metadata=no_metadata)
 
-    targets = [path] if path.is_file() else list(_iter_files(path, recursive))
-    results = []
-    for target in targets:
-        try:
-            result = pipeline.process(target, dry_run=dry_run)
-        except Exception as exc:
-            result = {"path": str(target), "status": "error", "error": str(exc)}
-        results.append(result)
-        _print_result(result, dry_run)
-
-    if cfg.raw.get("spreadsheet", {}).get("export_after_index", True):
-        try:
-            from file_categorizer.core.metadata_db import MetadataDatabase
-            from file_categorizer.core.spreadsheet import export_workbook
-            target_wb = cfg.raw.get("spreadsheet", {}).get(
-                "workbook_path", "output/metadata.xlsx"
-            )
-            mdb = MetadataDatabase(cfg.paths.get("database", "data/cache.db"))
-            mdb.init_schema()
-            path_wb = export_workbook(mdb, target_wb)
-            console.print(f"[dim]Exported workbook to {path_wb}[/dim]")
-        except Exception as exc:
-            console.print(f"[dim]Workbook export skipped: {exc}[/dim]")
-
-    db.close()
-    cfg = load_config(config_path)
-    setup_logging(cfg.paths.get("logs", "data/logs"))
-    db = Database(cfg.paths.get("database", "data/cache.db"))
-    pipeline = _build_pipeline(cfg, db, no_metadata=no_metadata)
+    if not os.environ.get("GEMINI_API_KEY"):
+        console.print(
+            "[dim]No GEMINI_API_KEY set: running fully local "
+            "(Gemini fallback disabled).[/dim]"
+        )
 
     targets = [path] if path.is_file() else list(_iter_files(path, recursive))
+    if not targets:
+        console.print("[yellow]No supported image/video files found.[/yellow]")
     results = []
     for target in targets:
         try:
@@ -157,22 +127,49 @@ def index(
         if low:
             review_queue(low, db)
 
-    if cfg.raw.get("spreadsheet", {}).get("export_after_index", True):
+    if not dry_run and cfg.raw.get("spreadsheet", {}).get("export_after_index", True):
         try:
             from file_categorizer.core.metadata_db import MetadataDatabase
             from file_categorizer.core.spreadsheet import export_workbook
-            target = cfg.raw.get("spreadsheet", {}).get(
+            target_wb = cfg.raw.get("spreadsheet", {}).get(
                 "workbook_path", "output/metadata.xlsx"
             )
             mdb = MetadataDatabase(cfg.paths.get("database", "data/cache.db"))
             mdb.init_schema()
-            path = export_workbook(mdb, target)
-            console.print(f"[dim]Exported workbook to {path}[/dim]")
+            path_wb = export_workbook(mdb, target_wb)
+            console.print(f"[dim]Exported workbook to {path_wb}[/dim]")
         except Exception as exc:
             console.print(f"[dim]Workbook export skipped: {exc}[/dim]")
 
+    errors = [r for r in results if r.get("status") == "error"]
+    console.print(f"Done: {len(results)} file(s), {len(errors)} error(s).")
     db.close()
 
+
+@app.command()
+def scan(
+    path: Path = typer.Argument(..., help="File or folder to scan"),
+    recursive: bool = typer.Option(False, "--recursive", "-r"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+    review: bool = typer.Option(False, "--review"),
+    no_metadata: bool = typer.Option(False, "--no-metadata", help="Skip OCR/VLM extraction"),
+    config_path: str = CONFIG_OPT,
+):
+    """Classify, sort and index files (extracts metadata, EXIF, and duplicates)."""
+    _run_index(path, recursive, dry_run, review, no_metadata, config_path)
+
+
+@app.command()
+def index(
+    path: Path = typer.Argument(..., help="File or folder to index"),
+    recursive: bool = typer.Option(False, "--recursive", "-r"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+    review: bool = typer.Option(False, "--review"),
+    no_metadata: bool = typer.Option(False, "--no-metadata", help="Skip OCR/VLM extraction"),
+    config_path: str = CONFIG_OPT,
+):
+    """Same as ``scan``: classify, sort and index files."""
+    _run_index(path, recursive, dry_run, review, no_metadata, config_path)
 
 @app.command()
 def review(config_path: str = CONFIG_OPT):

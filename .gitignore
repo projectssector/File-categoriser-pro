@@ -23,6 +23,9 @@ app/config/config.yaml
 build/
 dist/
 
+# VC++ Redistributable downloaded during builds (not part of the repo)
+vc_redist.x64.exe
+
 # Release binaries: upload these to GitHub Releases, not to the repo
 release/*.exe
 release/*.zip

@@ -71,7 +71,9 @@ from .extractor import Extractor
 from .image_info import collect_image_info
 from .learning import apply_field_corrections, pattern_suggestion
 from .ocr import run_ocr
-from .pipeline import FilePipeline, load_image
+from .pipeline import FilePipeline, load_image, safe_category_name, unique_destination
+import os
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +169,12 @@ class MetadataPipeline:
             {"entity_type": e.entity_type, "entity_value": e.entity_value}
             for e in entities
         ]
+
+        # Try to rename by extracted title/name if triggered
+        try:
+            self._maybe_rename_by_meta(read_path, result, dry_run)
+        except Exception as e:
+            logger.warning("metadata_pipeline: rename failed: %s", e)
 
         if self.meta_auto_export() and not dry_run:
             try:
@@ -329,6 +337,107 @@ class MetadataPipeline:
         self._persist(file_hash, record_path, base_result, fields, entities)
         return fields, entities
 
+    def _extract_title_from_result(self, result: dict[str, Any]) -> str | None:
+        # Prefer common title/name fields
+        for key in ("video_title", "anime_name", "movie_tv_name", "song_name", "website_name", "account_name", "display_name"):
+            val = None
+            if result.get(key):
+                val = result.get(key)
+            else:
+                for f in result.get("metadata_fields") or []:
+                    if isinstance(f, dict) and f.get("field_name") == key and f.get("field_value"):
+                        val = f.get("field_value")
+                        break
+            if val and str(val).strip():
+                return str(val).strip()
+        # Fallback to entities
+        for e in result.get("metadata_entities") or []:
+            if isinstance(e, dict):
+                t = e.get("entity_type")
+                v = e.get("entity_value")
+                if t in ("anime", "movie_tv", "website", "account", "song") and v:
+                    return str(v).strip()
+        return None
+
+    def _should_extract_rename(self, result: dict[str, Any]) -> bool:
+        # Trigger if category/scan cues suggest extraction needed or user says extract info
+        tag = str(result.get("tag") or "").lower()
+        if tag in ("anime", "manga", "movie", "tv", "tvshow", "movie/tvshow", "website", "websites", "account", "social", "social_accounts"):
+            return True
+        for f in result.get("metadata_fields") or []:
+            if isinstance(f, dict):
+                if str(f.get("field_name") or "").lower() in ("extract_info", "extract", "scn_cues", "scan_cues"):
+                    v = str(f.get("field_value") or "").lower()
+                    if v and v not in ("false", "0", "no"):
+                        return True
+        # Also check teaching notes
+        notes = str(result.get("notes") or "")
+        if "extract info" in notes.lower() or "extract" in notes.lower():
+            return True
+        return False
+
+    def _sanitize_name(self, name: str) -> str:
+        name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', str(name))
+        name = re.sub(r'\s+', ' ', name).strip().strip('.')
+        return name or "untitled"
+
+    def _maybe_rename_by_meta(self, read_path: Path, result: dict[str, Any], dry_run: bool) -> None:
+        if not self._should_extract_rename(result):
+            return
+        title = self._extract_title_from_result(result)
+        if not title:
+            return
+        base = self._sanitize_name(title)
+        ext = read_path.suffix
+        target_dir = read_path.parent
+        # Try to find existing numbered files with same base
+        pattern = re.compile(r'^' + re.escape(base) + r'(?:\s*\((\d+)\))?' + re.escape(ext) + r'$', re.I)
+        existing_nums = []
+        for p in target_dir.glob(base + "*" + ext):
+            m = pattern.match(p.name)
+            if m:
+                n = m.group(1)
+                if n:
+                    try:
+                        existing_nums.append(int(n))
+                    except Exception:
+                        pass
+        if read_path.name.lower() == (base + ext).lower() or pattern.match(read_path.name):
+            pass  # maybe same or numbered
+        num = max(existing_nums) + 1 if existing_nums else None
+        if num is None and pattern.match(read_path.name):
+            # if it's already numbered, don't change
+            return
+        if num is None:
+            new_name = base + ext
+        else:
+            new_name = f"{base} ({num}){ext}"
+        new_path = target_dir / new_name
+        if new_path.exists() and new_path.resolve() != read_path.resolve():
+            # increment
+            while new_path.exists() and new_path.resolve() != read_path.resolve():
+                num = (num or 0) + 1
+                new_name = f"{base} ({num}){ext}"
+                new_path = target_dir / new_name
+        if dry_run:
+            result["renamed_to"] = str(new_path)
+            return
+        if read_path.resolve() == new_path.resolve():
+            return
+        try:
+            shutil.move(str(read_path), str(new_path))
+            result["renamed_to"] = str(new_path)
+            if result.get("moved_to"):
+                result["moved_to"] = str(new_path)
+            # Update paths
+            result["path"] = str(new_path)
+            try:
+                self.mdb.move_location(str(read_path), str(new_path))
+            except Exception:
+                pass
+        except Exception as e:
+            logger.warning("rename failed: %s", e)
+
     def _persist(
         self,
         file_hash: str,
@@ -360,12 +469,12 @@ class MetadataPipeline:
 
         # Track the physical path separately from the content-keyed file row,
         # so exact duplicates can be reported without duplicating metadata.
-        current_path = Path(base_result.get("moved_to") or path)
+        current_path = Path(base_result.get("renamed_to") or base_result.get("moved_to") or path)
         stat = _stat(current_path)
         self.mdb.record_location(
             file_hash,
             str(current_path),
-            original_path=str(path),
+            original_path=str(base_result.get("original_path") or path),
             file_size=stat[0],
             modified_at=stat[1],
             phash=base_result.get("perceptual_hash"),

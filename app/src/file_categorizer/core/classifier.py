@@ -49,7 +49,7 @@ class Pipeline:
 
         # 1. Cache hit?
         if (entry := self.db.get_cached(file_hash)) is not None:
-            log.info("cache hit: %s → %s", path, entry.tag)
+            log.info("cache hit: %s -> %s", path, entry.tag)
             return Prediction(tag=entry.tag, confidence=entry.confidence, model="cache")
 
         # 2. Prior correction?
@@ -71,7 +71,7 @@ class Pipeline:
         # 5. Gemini fallback if low confidence
         threshold = self.config.models["prefilter"]["confidence_threshold"]
         if pred.confidence < threshold and self.gemini.available:
-            log.info("low confidence (%.2f) → Gemini fallback", pred.confidence)
+            log.info("low confidence (%.2f) -> Gemini fallback", pred.confidence)
             try:
                 prompt = build_prompt(self.config.categories, candidate_tags=categories)
                 gem = self.gemini.predict(image, prompt, categories)

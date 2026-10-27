@@ -1,35 +1,76 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('config/config.example.yaml', 'config')]
-binaries = []
+HERE = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.join(HERE, 'src')
+
+# ---------------------------------------------------------------------------
+# Data files
+# ---------------------------------------------------------------------------
+datas = [
+    ('config/config.example.yaml', 'config'),
+    (os.path.join(HERE, 'app_icon.ico'), '.'),
+]
+
+# ---------------------------------------------------------------------------
+# Hidden imports
+# ---------------------------------------------------------------------------
 hiddenimports = [
+    # Core ML / vision stack
     'open_clip',
+    'open_clip_torch',
+    'torch',
+    'torchvision',
+    'cv2',
+    'numpy',
+    'numpy.libs',
+    # Image / OCR / spreadsheet
     'imagehash',
     'pytesseract',
     'openpyxl',
     'openpyxl.styles',
     'openpyxl.utils',
+    'PIL',
+    'PIL.Image',
+    'PIL.ImageFilter',
+    # Gemini / Google AI
+    'google.generativeai',
+    'google.api_core',
+    # PySide6 Qt modules used by the GUI
+    'PySide6.QtCore',
+    'PySide6.QtGui',
+    'PySide6.QtWidgets',
+    'PySide6.QtNetwork',
+    'PySide6.QtWebEngine',
+    # Application package
+    'file_categorizer',
+    'file_categorizer.core',
+    'file_categorizer.models',
+    'file_categorizer.utils',
 ]
-# The ``open_clip_torch`` distribution installs the ``open_clip`` package.
-# collect_all() needs the *package* name so the tokenizer vocabulary file
-# (bpe_simple_vocab_16e6.txt.gz) and other package data are bundled.
-tmp_ret = collect_all('open_clip')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('open_clip_torch')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('transformers')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('google.generativeai')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
+binaries = []
+
+# Collect package data (tokenizer vocab, Qt plugins, model files, etc.)
+for _pkg in ('open_clip', 'open_clip_torch', 'transformers',
+             'google.generativeai', 'PySide6', 'cv2', 'numpy'):
+    try:
+        _d, _b, _h = collect_all(_pkg)
+        datas += _d
+        binaries += _b
+        hiddenimports += _h
+    except Exception:
+        # collect_all raises if the package is not importable in the build env;
+        # that is fine -- the hiddenimports list above still covers it.
+        pass
 
 a = Analysis(
     ['run_gui.py'],
-    pathex=['src'],
+    pathex=[SRC, HERE],
     binaries=binaries,
     datas=datas,
-    hiddenimports=hiddenimports,
+    hiddenimports=sorted(set(hiddenimports)),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -55,8 +96,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['app_icon.ico'],
-    version='../version_info.txt',
+    icon=[os.path.join(HERE, 'app_icon.ico')],
+    version=os.path.join(HERE, 'version_info.txt'),
 )
 
 coll = COLLECT(

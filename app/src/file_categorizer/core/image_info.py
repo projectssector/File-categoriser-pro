@@ -113,8 +113,6 @@ def collect_image_info(
     except OSError as exc:
         logger.debug("image_info: stat failed for %s: %s", path, exc)
 
-    add("image_format", path.suffix.lstrip(".").upper() or None)
-
     width = height = None
     if image_bgr is not None and getattr(image_bgr, "shape", None):
         try:
@@ -143,6 +141,7 @@ def collect_image_info(
                 add("gps_longitude", lon, 0.9, "EXIF GPS")
     except Exception as exc:
         logger.debug("image_info: EXIF read skipped for %s: %s", path, exc)
+        add("image_format", path.suffix.lstrip(".").upper() or None)
 
     add("image_width", width)
     add("image_height", height)

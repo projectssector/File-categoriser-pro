@@ -101,6 +101,7 @@ spreadsheet:
   sheets:
     - Master
     - Anime
+    - Manga
     - Movies_TV
     - YouTube
     - Social_Accounts

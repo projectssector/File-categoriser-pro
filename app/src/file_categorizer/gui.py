@@ -255,6 +255,8 @@ class MainWindow(QMainWindow):
         self._settings = self._read_settings()
         if self._settings.get("gemini_api_key"):
             os.environ["GEMINI_API_KEY"] = self._settings["gemini_api_key"]
+        self._show_meta_details = bool(self._settings.get("show_metadata_details", True))
+        self._show_teaching_notes = bool(self._settings.get("show_teaching_notes", True))
 
         self._build_ui()
         if self._restore_geometry():
@@ -303,6 +305,8 @@ class MainWindow(QMainWindow):
                         "export_after_index", True
                     ),
                     "show_review_panel": self._settings.get("show_review_panel", True),
+                    "show_metadata_details": self._settings.get("show_metadata_details", True),
+                    "show_teaching_notes": self._settings.get("show_teaching_notes", True),
                 },
                 indent=2,
             ),
@@ -624,14 +628,19 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(self.duplicates_tab)
 
         toolbar = QHBoxLayout()
-        scan = QPushButton("Scan for Duplicates")
-        scan.setObjectName("accentButton")
-        scan.clicked.connect(self.scan_duplicates)
+        self.scan_dups_btn = QPushButton("Scan for Duplicates")
+        self.scan_dups_btn.setObjectName("accentButton")
+        self.scan_dups_btn.clicked.connect(self.scan_duplicates)
+        self._dup_scan_progress = QProgressBar()
+        self._dup_scan_progress.setRange(0, 0)
+        self._dup_scan_progress.setVisible(False)
+        self._dup_scan_progress.setFixedWidth(160)
         quarantine = QPushButton("Move Selected to Quarantine")
         quarantine.clicked.connect(self.quarantine_selected_duplicates)
         open_folder = QPushButton("Open Containing Folder")
         open_folder.clicked.connect(self.open_duplicate_folder)
-        toolbar.addWidget(scan)
+        toolbar.addWidget(self.scan_dups_btn)
+        toolbar.addWidget(self._dup_scan_progress)
         toolbar.addWidget(quarantine)
         toolbar.addWidget(open_folder)
         toolbar.addStretch(1)
@@ -723,12 +732,22 @@ class MainWindow(QMainWindow):
                     "Enable metadata in config.yaml to index and scan duplicates.",
                 )
             return
+        if hasattr(self, "scan_dups_btn"):
+            self.scan_dups_btn.setEnabled(False)
+        if hasattr(self, "_dup_scan_progress"):
+            self._dup_scan_progress.setVisible(True)
+        if not auto:
+            self._set_status("Scanning for similarities and duplicates...")
         try:
             self._duplicate_groups = scan_duplicates(self._metadata_db())
         except Exception as exc:
             self._duplicate_groups = []
             if not auto:
                 QMessageBox.warning(self, "Duplicate scan failed", str(exc))
+            if hasattr(self, "scan_dups_btn"):
+                self.scan_dups_btn.setEnabled(True)
+            if hasattr(self, "_dup_scan_progress"):
+                self._dup_scan_progress.setVisible(False)
             return
 
         self.duplicate_table.setRowCount(0)
@@ -770,6 +789,10 @@ class MainWindow(QMainWindow):
             )
             if not auto:
                 self._set_status("Duplicate scan found no duplicates.")
+        if hasattr(self, "scan_dups_btn"):
+            self.scan_dups_btn.setEnabled(True)
+        if hasattr(self, "_dup_scan_progress"):
+            self._dup_scan_progress.setVisible(False)
 
     def _current_duplicate_group(self) -> DuplicateGroup | None:
         rows = self.duplicate_table.selectionModel().selectedRows()
@@ -929,7 +952,7 @@ class MainWindow(QMainWindow):
         self.meta_expand = QToolButton()
         self.meta_expand.setText("Metadata Details")
         self.meta_expand.setCheckable(True)
-        self.meta_expand.setChecked(True)
+        self.meta_expand.setChecked(bool(getattr(self, "_show_meta_details", True)))
         self.meta_expand.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.meta_expand.setArrowType(Qt.DownArrow)
         self.meta_expand.clicked.connect(self._toggle_meta_details)
@@ -977,8 +1000,8 @@ class MainWindow(QMainWindow):
         )
         layout.addWidget(meta_box)
 
-        notes_box = QGroupBox("Teaching notes (what to look for)")
-        notes_layout = QVBoxLayout(notes_box)
+        self.notes_box = QGroupBox("Teaching notes (what to look for)")
+        notes_layout = QVBoxLayout(self.notes_box)
         self.teach_notes = QPlainTextEdit()
         self.teach_notes.setPlaceholderText(
             "Teach it what matters for THIS image, e.g. "
@@ -993,7 +1016,8 @@ class MainWindow(QMainWindow):
         self.save_notes_btn.clicked.connect(self.save_teach_notes)
         notes_row.addWidget(self.save_notes_btn)
         notes_layout.addLayout(notes_row)
-        layout.addWidget(notes_box)
+        self.notes_box.setVisible(bool(getattr(self, "_show_teaching_notes", True)))
+        layout.addWidget(self.notes_box)
 
         layout.addWidget(QLabel("What is it actually?"))
         self.actual_combo = QComboBox()
@@ -1502,6 +1526,20 @@ class MainWindow(QMainWindow):
         expanded = self.meta_expand.isChecked()
         self.meta_content.setVisible(expanded)
         self.meta_expand.setArrowType(Qt.DownArrow if expanded else Qt.RightArrow)
+        if hasattr(self, "_settings"):
+            self._settings["show_metadata_details"] = bool(expanded)
+            self._show_meta_details = bool(expanded)
+            self._write_settings()
+
+    def _toggle_teaching_notes(self, visible: bool | None = None) -> None:
+        if hasattr(self, "notes_box"):
+            if visible is None:
+                visible = not self.notes_box.isVisible()
+            self.notes_box.setVisible(bool(visible))
+        if hasattr(self, "_settings"):
+            self._settings["show_teaching_notes"] = bool(visible)
+            self._show_teaching_notes = bool(visible)
+            self._write_settings()
 
     def _toggle_review_panel(self, on: bool) -> None:
         if hasattr(self, "_review_scroll"):

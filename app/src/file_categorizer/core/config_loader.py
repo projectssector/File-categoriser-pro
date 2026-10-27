@@ -41,7 +41,7 @@ def load_config(path: str | Path = "config/config.yaml") -> Config:
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(
-            f"Config not found at {path}. Copy config/config.example.yaml → config/config.yaml"
+            f"Config not found at {path}. Copy config/config.example.yaml -> config/config.yaml"
         )
     with path.open("r", encoding="utf-8") as fh:
         data = yaml.safe_load(fh) or {}

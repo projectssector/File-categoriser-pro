@@ -133,18 +133,35 @@ See [app/docs/SETUP.md](app/docs/SETUP.md) for details.
 
 ## Build the Windows installer
 
-The installer is built with PyInstaller and Inno Setup 6. See
-[app/docs/BUILD.md](app/docs/BUILD.md). Run these commands from the `app`
-folder:
+The installer is built with PyInstaller and Inno Setup 6. The easiest way is
+the build script:
+
+```powershell
+cd app
+.\build.ps1
+```
+
+Or build manually:
 
 ```powershell
 cd app
 pip install -r requirements-dev.txt
+pip install pyinstaller
+# Download the VC++ Redistributable (required by PyInstaller binaries):
+# https://aka.ms/vs/17/release/vc_redist.x64.exe
+# Place vc_redist.x64.exe next to FileCategorizer.iss before compiling.
 python -m PyInstaller FileCategorizer.spec --noconfirm --clean
-& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" FileCategorizer.iss
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" FileCategorizer.iss
 ```
 
 The result is `app\dist\FileCategorizer-Setup-1.0.0.exe`.
+
+**Note:** The installer bundles the Microsoft Visual C++ Redistributable and
+installs it automatically on first run. No admin rights are required.
+
+> Windows SmartScreen may warn that the installer is from an unknown
+> publisher because it is not code-signed yet. Click **More info** >
+> **Run anyway**.
 
 ## How it works
 
