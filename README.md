@@ -25,6 +25,36 @@ See [INSTALL.txt](INSTALL.txt) if you prefer plain-text instructions.
 > publisher because it is not code-signed yet. Click **More info** >
 > **Run anyway**.
 
+
+### Install from terminal
+
+You can install and set up the app entirely from the command line (no GUI
+installer needed):
+
+`powershell
+# 1. Install Git and Python 3.12+
+# 2. Clone the repo
+git clone https://github.com/projectssector/File-categoriser-pro
+cd File-categoriser-pro
+
+# 3. Create a virtual environment and install dependencies
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install --upgrade pip
+pip install -r app/requirements-dev.txt
+
+# 4. Install the Visual C++ Redistributable (required by the app)
+#    Download from: https://aka.ms/vs/17/release/vc_redist.x64.exe
+#    Then build the PyInstaller + Inno Setup installer:
+.\app\build.ps1
+
+# 5. The installer is at app\dist\FileCategorizer-Setup-1.0.1.exe
+`
+
+### Portable (no installer)
+1. Download the portable zip from the [latest release](../../releases/latest).
+2. Extract and run FileCategorizer.exe directly.
+
 ### First launch
 
 - The first launch downloads the local AI models (about 700 MB total). Keep
